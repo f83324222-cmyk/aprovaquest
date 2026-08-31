@@ -1,34 +1,65 @@
-export const BASE = (() => {
-  const p=location.pathname;
-  const markers=["/questoes/","/questao/","/simulados/","/sobre/","/contato/","/politica-de-privacidade/","/admin/"];
-  const hits=markers.map(m=>p.indexOf(m)).filter(i=>i>=0);
-  if(hits.length) return p.slice(0,Math.min(...hits)+1);
-  return p.endsWith("/") ? p : p.slice(0,p.lastIndexOf("/")+1);
-})();
+import { supabase } from "./supabase.js";
 
-export function esc(value=""){
-  return String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+const lista = document.getElementById("listaQuestoes");
+const filtroMateria = document.getElementById("materia");
+const filtroDificuldade = document.getElementById("dificuldade");
+
+async function mostrarQuestoes() {
+  if (!lista) return;
+
+  lista.innerHTML = "<p>Carregando questões...</p>";
+
+  let query = supabase
+    .from("questoes")
+    .select("*")
+    .order("id", { ascending: true });
+
+  if (filtroMateria && filtroMateria.value) {
+    query = query.eq("materia", filtroMateria.value);
+  }
+
+  if (filtroDificuldade && filtroDificuldade.value) {
+    query = query.eq("dificuldade", filtroDificuldade.value);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error(error);
+    lista.innerHTML = "<p>Erro ao carregar as questões.</p>";
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    lista.innerHTML = "<p>Nenhuma questão encontrada.</p>";
+    return;
+  }
+
+  lista.innerHTML = "";
+
+  data.forEach(q => {
+    const div = document.createElement("div");
+    div.className = "questao-card";
+
+    div.innerHTML = `
+      <span class="tag">${q.materia}</span>
+      <h2>${q.titulo}</h2>
+      <p>${q.enunciado}</p>
+      <a class="botao" href="../questao/?slug=${encodeURIComponent(q.slug)}">
+        Resolver questão
+      </a>
+    `;
+
+    lista.appendChild(div);
+  });
 }
-export function slugify(s=""){
-  return s.toString().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase()
-    .replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");
+
+if (filtroMateria) {
+  filtroMateria.addEventListener("change", mostrarQuestoes);
 }
-export function questionUrl(slug){ return `${BASE}questao/${encodeURIComponent(slug)}/`; }
-export function subjectUrl(materia, assunto){
-  return `${BASE}questoes/${slugify(materia)}/${slugify(assunto)}/`;
+
+if (filtroDificuldade) {
+  filtroDificuldade.addEventListener("change", mostrarQuestoes);
 }
-export function excerpt(s,n=180){ s=String(s||""); return s.length>n ? s.slice(0,n).trim()+"…" : s; }
-export function setMeta(name,content){
-  let el=document.querySelector(`meta[name="${name}"]`);
-  if(!el){el=document.createElement("meta");el.name=name;document.head.appendChild(el)}
-  el.content=content;
-}
-export function setCanonical(url){
-  let el=document.querySelector('link[rel="canonical"]');
-  if(!el){el=document.createElement("link");el.rel="canonical";document.head.appendChild(el)}
-  el.href=url;
-}
-export function showError(el,msg){el.innerHTML=`<div class="notice error">${esc(msg)}</div>`}
-export function bindGlobal(){
-  document.querySelectorAll("[data-year]").forEach(e=>e.textContent=new Date().getFullYear());
-}
+
+mostrarQuestoes();
