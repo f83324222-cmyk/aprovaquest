@@ -1,0 +1,13 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Login administrativo | AprovaQuest</title><link rel="stylesheet" href="../css/style.css"></head>
+<body><main><div class="container" style="max-width:500px"><div class="card"><a class="logo" href="../">Aprova<span>Quest</span></a><h1>Login administrativo</h1><p class="muted">Área restrita para usuários autorizados.</p><div id="admin-msg"></div>
+<form id="login-form"><div><label>E-mail</label><input type="email" name="email" required autocomplete="email"></div><div style="margin-top:12px"><label>Senha</label><input type="password" name="password" required autocomplete="current-password"></div><div class="actions"><button class="btn" type="submit">Entrar</button><a class="btn secondary" href="../">Voltar</a></div></form></div></div></main>
+<script type="module">
+import {supabase,supabaseConfigured} from "../js/supabase.js";
+const msg=document.querySelector("#admin-msg");
+document.querySelector("#login-form").addEventListener("submit",async e=>{
+ e.preventDefault(); if(!supabaseConfigured){msg.innerHTML='<div class="notice error">Configure o Supabase em js/config.js.</div>';return}
+ const d=new FormData(e.currentTarget);const {error}=await supabase.auth.signInWithPassword({email:d.get("email"),password:d.get("password")});
+ if(error){msg.innerHTML='<div class="notice error">'+error.message+'</div>';return}
+ location.href="index.html";
+});
+</script></body></html>
